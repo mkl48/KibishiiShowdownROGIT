@@ -77,6 +77,21 @@ function Memo.execute(spec: MoveSpec, ctx: Ctx): typeof(Promise.new(function() e
 	return promise
 end
 
+-- Like execute, but also hands back the live Timeline (for interrupt/cancel and
+-- onCompleted tracking -- e.g. an AbilityManager keeping one move per player).
+function Memo.executeTracked(spec: MoveSpec, ctx: Ctx)
+	local resolved = buildCtx(ctx)
+	return Timeline.start(spec, resolved) -- (timeline, promise)
+end
+
+-- Resolve a variant spec to its concrete MoveSpec for `ctx` (server picks, then
+-- broadcasts the chosen variant so clients run the exact same one).
+function Memo.resolveVariant(spec: VariantSpec, ctx: Ctx): (MoveSpec?, string?)
+	local resolved = buildCtx(ctx)
+	local name = spec.resolver(resolved)
+	return spec.variants[name], name
+end
+
 function Memo.executeAt(spec: MoveSpec, ctx: Ctx, phase: string): typeof(Promise.new(function() end))
 	local resolved = buildCtx(ctx)
 	local _, promise = Timeline.startAt(spec, resolved, phase)
@@ -131,6 +146,36 @@ end
 
 function Memo.canInterrupt(current: MoveSpec, incoming: MoveSpec): boolean
 	return priorityValue(incoming.priority) >= priorityValue(current.priority)
+end
+
+-- The resources a move declares it costs (your game deducts them; Memo never owns
+-- resources). Empty table if none.
+function Memo.costOf(spec: MoveSpec): { [string]: number }
+	return spec.cost or {}
+end
+
+-- Run a move's conditions against a context without starting it. Returns
+-- (true) or (false, reason). Call this (plus your own cost check) before execute.
+function Memo.canStart(spec: MoveSpec, ctx: Ctx): (boolean, string?)
+	if spec.conditions then
+		local resolved = buildCtx(ctx)
+		for _, cond in spec.conditions do
+			local ok, reason = cond(resolved)
+			if not ok then
+				return false, reason or ("[Memo] condition failed for " .. spec.name)
+			end
+		end
+	end
+	return true
+end
+
+-- Gate + execute in one call: refuses with a rejected promise if a condition fails.
+function Memo.tryExecute(spec: MoveSpec, ctx: Ctx): typeof(Promise.new(function() end))
+	local ok, reason = Memo.canStart(spec, ctx)
+	if not ok then
+		return Promise.rejected(reason)
+	end
+	return Memo.execute(spec, ctx)
 end
 
 Memo.Drive = {
