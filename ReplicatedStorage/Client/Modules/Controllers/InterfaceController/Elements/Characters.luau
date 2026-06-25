@@ -21,9 +21,9 @@ function Characters:Start(context)
 		local Manifest = require(Char:FindFirstChild("Manifest")).MovesetOverview
 		local Character = Icon.new()
 		warn(Manifest)
-		:setLabel(Manifest.Name)
-		:oneClick(true)
-		:joinDropdown(CharactersDropdown)
+		Character:setLabel(Manifest.Name)
+		Character:oneClick(true)
+		Character:joinDropdown(CharactersDropdown)
 	
 		Character.deselected:Connect(function(fromSource)
 			Interface:SelectCharacter(Manifest.Name)
