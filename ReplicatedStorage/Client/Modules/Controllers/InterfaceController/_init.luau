@@ -13,24 +13,36 @@ function InterfaceController:Start(context)
 	self._context = context
 	self._character = context:Network("Character")
 	self._selected = nil :: string?
-
+	
+	warn("YYER")
+	
 	-- HUD: StatusController fans the authoritative snapshot out on Local Hud.Refresh
 	-- (Network Status.Sync is destination-filtered to StatusController).
-	context:Local("Hud"):Subscribe("Refresh", function(snapshot)
-		self._latest = snapshot
-		self:_refreshHud(snapshot)
-	end)
+	--context:Local("Hud"):Subscribe("Refresh", function(snapshot)
+	--	self._latest = snapshot
+	--	self:_refreshHud(snapshot)
+	--end)
 
 	-- Pull the roster, then hand it to your select screen.
-	self:RequestCharacterList()
-		:Next(function(names)
-			self:_buildCharacterSelect(names)
-		end)
-		:Catch(function(err)
-			warn("[InterfaceController] character list failed:", err)
-		end)
-
-	self:_buildHud()
+	--self:RequestCharacterList()
+	--	:Next(function(names)
+	--		self:_buildCharacterSelect(names)
+	--	end)
+	--	:Catch(function(err)
+	--		warn("[InterfaceController] character list failed:", err)
+	--	end)
+	--self:_buildHud()
+	
+	local Elements = script.Elements
+	
+	for _, module in Elements:GetChildren() do
+		if module:IsA("ModuleScript") then
+			local controller = require(module)
+			
+			context["interface"] = InterfaceController
+			controller:Start(context)
+		end
+	end
 end
 
 -- ===== data flow (DONE -- call these from your UI) =====

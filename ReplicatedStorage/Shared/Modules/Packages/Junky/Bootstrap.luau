@@ -84,7 +84,10 @@ local function validateJunction(junctionMap, present, side: string)
 	for domain, byDomain in localMap do
 		for name, entry in byDomain do
 			local destination = entry.Destination
-			if destination and not present[destination] then
+			-- An entry with `Side` set is intentionally side-scoped (e.g. a client-only
+			-- input event); skip it when validating the other side.
+			local scopedAway = entry.Side ~= nil and entry.Side ~= side
+			if destination and not scopedAway and not present[destination] then
 				warn(("[Junky] Local %s.%s routes to '%s', which is not a module on the %s side")
 					:format(domain, name, destination, side))
 			end

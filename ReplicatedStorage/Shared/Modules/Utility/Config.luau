@@ -43,6 +43,12 @@ Config.Junction = {
 			-- server -> all clients: run this move's client tracks on the caster
 			Play = { Destination = "AbilityController" },
 		},
+		Player = {
+			-- client -> server PlayerService; server -> client PlayerService.
+			-- Same destination name -- the two halves are side-split.
+			Message = { Destination = "PlayerService" },
+			Welcome = { Destination = "PlayerService" },
+		},
 	},
 
 	Local = {
@@ -53,10 +59,6 @@ Config.Junction = {
 		-- server-only: StatusService announces a changed slice; StatusManager forwards.
 		Status = {
 			Changed = { Destination = "StatusManager", Side = "Server" },
-		},
-		-- server-only: PlayerService announces a spawned player so state can init.
-		Data = {
-			Loaded = { Destination = "StatusService", Side = "Server" },
 		},
 		-- client-only: StatusController fans status snapshots out to the HUD.
 		Hud = {
@@ -142,8 +144,8 @@ Config.ClassPriority = {
 -- announces spawns before StatusService inits per-player state from them.
 -- ============================================================================
 Config.StandalonePriority = {
-	PlayerService = 1,
-	StatusService = 2,
+	PlayerService = 1, -- sessions (server + client halves, side-split)
+	StatusService = 2, -- self-inits per player on spawn
 	CombatService = 3,
 	CharacterService = 4, -- builds the catalog (registers moves with Memo)
 	HitboxService = 5, -- ctx.hitbox provider for ability hit detection
