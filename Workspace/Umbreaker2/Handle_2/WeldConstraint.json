@@ -1,0 +1,1 @@
+{"attributes":[],"className":"WeldConstraint","properties":{"Part0":{"path":"Workspace.Umbreaker2.Handle_2","_t":"Ref","name":"Handle_2"},"Part1":{"path":"Workspace.Umbreaker2.Base","_t":"Ref","name":"Base"},"Enabled":true}}

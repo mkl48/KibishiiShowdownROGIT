@@ -1,0 +1,1 @@
+{"attributes":[],"className":"Motor6D","properties":{"Enabled":true,"Part1":{"path":"Workspace.Noob.Left Leg","_t":"Ref","name":"Left Leg"},"Part0":{"path":"Workspace.Noob.Torso","_t":"Ref","name":"Torso"},"C0":{"_t":"CFrame","c":[-1,-1,0,0,0,-1,0,1,0,1,0,0]},"C1":{"_t":"CFrame","c":[-0.5,1,0,0,0,-1,0,1,0,1,0,0]}}}

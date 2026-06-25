@@ -1,0 +1,1 @@
+{"attributes":[],"className":"Motor6D","properties":{"Enabled":true,"Part1":{"path":"Workspace.Noob.Torso","_t":"Ref","name":"Torso"},"Part0":{"path":"Workspace.Noob.HumanoidRootPart","_t":"Ref","name":"HumanoidRootPart"},"C0":{"_t":"CFrame","c":[0,0,0,-1,0,0,0,0,1,0,1,-0]},"C1":{"_t":"CFrame","c":[0,0,0,-1,0,0,0,0,1,0,1,-0]}}}
