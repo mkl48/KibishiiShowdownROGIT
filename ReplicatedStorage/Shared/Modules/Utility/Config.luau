@@ -31,24 +31,6 @@ Config.Junction = {
 			-- server -> a client: you were knocked Down (ragdoll + respawn flow)
 			Down = { Destination = "StatusController" },
 		},
-		Character = {
-			-- client -> server request: the selectable characters
-			List = { Destination = "CharacterService" },
-			-- client -> server request: pick a character (returns { ok, character? })
-			Select = { Destination = "CharacterService" },
-		},
-		Ability = {
-			-- client -> server: "I pressed <action>"; server resolves + authorizes
-			Cast = { Destination = "AbilityManager" },
-			-- server -> all clients: run this move's client tracks on the caster
-			Play = { Destination = "AbilityController" },
-		},
-		Player = {
-			-- client -> server PlayerService; server -> client PlayerService.
-			-- Same destination name -- the two halves are side-split.
-			Message = { Destination = "PlayerService" },
-			Welcome = { Destination = "PlayerService" },
-		},
 	},
 
 	Local = {
@@ -60,13 +42,9 @@ Config.Junction = {
 		Status = {
 			Changed = { Destination = "StatusManager", Side = "Server" },
 		},
-		-- client-only: StatusController fans status snapshots out to the HUD.
-		Hud = {
-			Refresh = { Destination = "InterfaceController", Side = "Client" },
-		},
-		-- client-only: InputController -> AbilityController (M1 / skill presses).
-		Ability = {
-			Input = { Destination = "AbilityController", Side = "Client" },
+		-- server-only: PlayerService announces a spawned player so state can init.
+		Data = {
+			Loaded = { Destination = "StatusService", Side = "Server" },
 		},
 	},
 }
@@ -134,9 +112,8 @@ Config.Manifest = {
 -- ============================================================================
 Config.ClassPriority = {
 	[1] = { "StatusController", "StatusManager" },
-	[2] = { "CombatController", "CombatManager", "AbilityManager" },
-	[3] = { "InputController", "AnimationController" },
-	[4] = { "InterfaceController", "AbilityController" }, -- need Animation booted first
+	[2] = { "CombatController", "CombatManager" },
+	[3] = { "InputController" },
 }
 
 -- ============================================================================
@@ -144,11 +121,9 @@ Config.ClassPriority = {
 -- announces spawns before StatusService inits per-player state from them.
 -- ============================================================================
 Config.StandalonePriority = {
-	PlayerService = 1, -- sessions (server + client halves, side-split)
-	StatusService = 2, -- self-inits per player on spawn
+	PlayerService = 1,
+	StatusService = 2,
 	CombatService = 3,
-	CharacterService = 4, -- builds the catalog (registers moves with Memo)
-	HitboxService = 5, -- ctx.hitbox provider for ability hit detection
 }
 
 return Config
