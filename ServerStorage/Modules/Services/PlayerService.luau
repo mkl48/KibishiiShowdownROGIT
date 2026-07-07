@@ -13,6 +13,7 @@ local Net = require(ReplicatedStorage.Shared.Modules.Packages.Network)
 
 local PlayerService = {}
 PlayerService.Sessions = {} -- [player] = PlayerExport
+PlayerService.Priority = 0
 
 export type PlayerExport = {
 	Profile: { any }?,
@@ -21,26 +22,7 @@ export type PlayerExport = {
 }
 
 function PlayerService:Start(context)
-	self._context = context
-
-	-- client -> server: a player message (Net puts the sending player first).
-	Net:OnClient("Player.Message", function(player, payload)
-		warn("[PlayerService] message from", player.Name, payload)
-	end)
-
-	local function onPlayer(player: Player)
-		self:CreatePlayer(player)
-		-- server -> that client: welcome payload.
-		Net:ToClient(player, "Player.Welcome", { Message = "Test Message" })
-	end
-
-	for _, player in Players:GetPlayers() do
-		task.spawn(onPlayer, player)
-	end
-	Players.PlayerAdded:Connect(onPlayer)
-	Players.PlayerRemoving:Connect(function(player)
-		self.Sessions[player] = nil
-	end)
+	
 end
 
 function PlayerService:CreatePlayer(player: Player): PlayerExport

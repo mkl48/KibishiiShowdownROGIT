@@ -1,3 +1,4 @@
+
 -- Kibishii Showdown
 -- Client/Modules/Services/PlayerService.luau
 --
@@ -9,12 +10,7 @@
 local PlayerService = {}
 
 function PlayerService:Start(context)
-	local Player = context:Network("Player")
-
-	-- server -> client: the welcome payload (was the Switchboard subscribe).
-	Player:Subscribe("Welcome", function(payload)
-		warn("[PlayerService] welcome:", payload and payload.Message)
-	end)
+	
 end
 
 function PlayerService:GetPlayer()

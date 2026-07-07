@@ -165,10 +165,10 @@ function Bootstrap.Boot(config, substance)
 		if kind == "Manager" and side ~= "Server" then
 			continue
 		end
-		if instances[name] then
-			warn(("[Junky] duplicate module name '%s' -- the second one is ignored"):format(name))
-			continue
-		end
+		--if instances[name] then
+		--	warn(("[Junky] duplicate module name '%s' -- the second one is ignored"):format(name))
+		--	continue
+		--end
 
 		local ok, result = pcall(require, moduleScript)
 		if not ok then

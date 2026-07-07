@@ -11,7 +11,8 @@ local CombatService = {}
 CombatService.Combo = {} -- [player] = { Index, LastSwing }
 
 function CombatService:Start(context)
-	self._manifest = context:GetPackage("Manifest")
+	warn(context)
+	--self._manifest = context:GetPackage("Manifest")
 end
 
 local function getRoot(player: Player): BasePart?

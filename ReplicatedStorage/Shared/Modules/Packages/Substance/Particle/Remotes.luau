@@ -17,13 +17,11 @@ local Remotes = {}
 local root: Folder? = nil
 
 local function getRoot(): Folder
-	warn("Yer")
 	if root then
 		return root
 	end
 
 	if IS_SERVER then
-		warn("Creating")
 		root = Instance.new("Folder")
 		root.Name = "MaterialSubstanceRemotes"
 		root.Parent = ReplicatedStorage

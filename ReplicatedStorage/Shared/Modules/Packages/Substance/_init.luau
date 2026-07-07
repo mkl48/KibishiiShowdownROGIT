@@ -2,8 +2,6 @@
 -- init.lua
 -- Plinko Labs
 
-warn("Init")
-
 local Particle = require(script.Particle)
 local React = require(script.React)
 local Tools = require(script.Tools)
