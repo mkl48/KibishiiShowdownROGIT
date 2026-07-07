@@ -1,91 +1,96 @@
+-- Plinko public types.
+
 local Types = {}
 
-export type MiddlewareFn = (value: any, old: any) -> any
-export type FilterFn = (player: Player, data: { [string]: any }) -> boolean
+export type Scope      = "owner" | "all"
+export type Kind       = "player" | "global"
+export type Middleware = (value: any, old: any) -> any
 
-export type Config = {
-	schema: { [string]: any },
-	replicate: { [string]: "owner" | "all" }?,
-	visibility: ("public" | "private")?,
-	middleware: { [string]: MiddlewareFn }?,
-	standalone: boolean?,
-	save: {
-		interval: number?,
-		onLeave: boolean?,
-	}?,
-	onLoad: ((player: Player) -> any)?,
-	onSave: ((player: Player, data: { [string]: any }) -> any)?,
+export type SaveConfig = {
+	interval : number?,
+	onLeave  : boolean?,
 }
 
-export type Entry = {
-	data: { [string]: any },
-	defaults: { [string]: any },
-	dirty: { [string]: any },
-	locked: boolean,
-	hidden: boolean,
-	snapshots: { [string]: { [string]: any } },
-	_onChange: any,
-	_onFlush: any,
-	_watches: { [string]: { any } },
+export type Config = {
+	schema     : { [string]: any },
+	key        : Kind?,
+	replicate  : { [string]: Scope }?,
+	middleware : { [string]: Middleware }?,
+	standalone : boolean?,
+	visibility : ("public" | "private")?,
+	save       : SaveConfig?,
+	onLoad     : ((id: any) -> any)?,
+	onSave     : ((id: any, dirty: { [string]: any }) -> any)?,
+}
+
+export type Connection = { Disconnect: (Connection) -> () }
+
+-- A handle bound to one record. Every method is field-first, on both contexts.
+export type View = {
+	get         : (self: View, field: string?) -> any,
+	getAll      : (self: View) -> { [string]: any },
+	exists      : (self: View) -> boolean,
+
+	set         : (self: View, field: string, value: any) -> View,
+	patch       : (self: View, delta: { [string]: any }) -> View,
+	increment   : (self: View, field: string, amount: number?) -> View,
+	toggle      : (self: View, field: string) -> View,
+	reset       : (self: View, field: string) -> View,
+
+	watch       : (self: View, field: string, fn: (new: any, old: any) -> ()) -> Connection?,
+	onChange    : (self: View, fn: (field: string, new: any, old: any) -> ()) -> any,
+	onFlush     : (self: View, fn: (dirty: { [string]: any }) -> ()) -> any,
+
+	dirty       : (self: View) -> { [string]: any },
+	isDirty     : (self: View, field: string) -> boolean,
+	clearDirty  : (self: View) -> View,
+	flush       : (self: View) -> any,
+
+	snapshot    : (self: View, name: string) -> View,
+	getSnapshot : (self: View, name: string) -> { [string]: any }?,
+	diff        : (self: View, name: string) -> { [string]: { old: any, new: any } },
+	restore     : (self: View, name: string) -> View,
+	dropSnapshot: (self: View, name: string) -> View,
+
+	hide        : (self: View) -> View,
+	show        : (self: View) -> View,
+	lock        : (self: View) -> View,
+	unlock      : (self: View) -> View,
 }
 
 export type Cache = {
-	_config: Config,
-	_name: string,
-	_entries: { [any]: Entry },
-	_standalone: boolean,
+	onAdded    : any,
+	onRemoving : any,
+	onFlush    : any,
+	onError    : any,
 
-	_saveTimer: number,
+	view       : (self: Cache, id: any) -> View,
+	global     : (self: Cache) -> View,
+	mine       : (self: Cache) -> View,
 
-	onAdded: any,
-	onRemoving: any,
-	onFlush: any,
-	onError: any,
+	get        : (self: Cache, id: any, field: string?) -> any,
+	set        : (self: Cache, id: any, field: string, value: any) -> (),
+	patch      : (self: Cache, id: any, delta: { [string]: any }) -> (),
+	increment  : (self: Cache, id: any, field: string, amount: number?) -> (),
+	watch      : (self: Cache, id: any, field: string, fn: (new: any, old: any) -> ()) -> Connection?,
 
-	_snapshots: { [any]: { [string]: any } },
+	create     : (self: Cache, id: any, seed: { [string]: any }?) -> View,
+	exists     : (self: Cache, id: any) -> boolean,
+	release    : (self: Cache, id: any) -> (),
+	await      : (self: Cache, id: any?) -> any,
 
-	get: (self: Cache, keyOrPlayer: any, key: string?) -> any,
-	set: (self: Cache, keyOrPlayer: any, key: string, value: any) -> (),
-	increment: (self: Cache, keyOrPlayer: any, key: string, n: number?) -> (),
-	patch: (self: Cache, keyOrPlayer: any, delta: { [string]: any }) -> (),
-	reset: (self: Cache, keyOrPlayer: any, key: string) -> (),
-	flush: (self: Cache, keyOrPlayer: any) -> any,
-	loaded: (self: Cache, player: Player) -> boolean,
-	await: (self: Cache, player: Player?) -> any,
-	lock: (self: Cache, player: Player) -> (),
-	unlock: (self: Cache, player: Player) -> (),
-	hide: (self: Cache, player: Player) -> (),
-	show: (self: Cache, player: Player) -> (),
+	ids        : (self: Cache) -> { any },
+	each       : (self: Cache, fn: (id: any, data: { [string]: any }) -> ()) -> (),
+	find       : (self: Cache, fn: (id: any, data: { [string]: any }) -> boolean) -> { [any]: { [string]: any } },
+	some       : (self: Cache, fn: (id: any, data: { [string]: any }) -> boolean) -> boolean,
+	count      : (self: Cache, fn: ((id: any, data: { [string]: any }) -> boolean)?) -> number,
+	setAll     : (self: Cache, field: string, value: any) -> (),
+	patchAll   : (self: Cache, delta: { [string]: any }) -> (),
 
-	find: (self: Cache, fn: FilterFn) -> { [Player]: { [string]: any } },
-	some: (self: Cache, fn: FilterFn) -> boolean,
-	count: (self: Cache, fn: FilterFn?) -> number,
+	flush      : (self: Cache, id: any) -> any,
+	flushAll   : (self: Cache) -> any,
 
-	setAll: (self: Cache, key: string, value: any) -> (),
-	patchAll: (self: Cache, delta: { [string]: any }) -> (),
-	flushAll: (self: Cache) -> any,
-	resetAll: (self: Cache, key: string) -> (),
-
-	dirty: (self: Cache, keyOrPlayer: any) -> { [string]: any },
-	isDirty: (self: Cache, keyOrPlayer: any, key: string) -> boolean,
-	clearDirty: (self: Cache, keyOrPlayer: any) -> (),
-
-	snapshot: (self: Cache, keyOrPlayer: any, name: string) -> (),
-	getSnapshot: (self: Cache, keyOrPlayer: any, name: string) -> { [string]: any }?,
-	diff: (self: Cache, keyOrPlayer: any, name: string) -> { [string]: { old: any, new: any } },
-	migrate: (self: Cache, keyOrPlayer: any, name: string) -> (),
-	destroySnapshot: (self: Cache, keyOrPlayer: any, name: string) -> (),
-	destroySnapshots: (self: Cache, keyOrPlayer: any) -> (),
-
-	onChange: (self: Cache, playerOrFn: any, fn: ((key: string, new: any, old: any) -> ())?) -> any,
-	onFlushFor: (self: Cache, playerOrFn: any, fn: ((dirty: { [string]: any }) -> ())?) -> any,
-	watch: (self: Cache, keyOrPlayer: any, keyOrFn: any, fn: ((new: any, old: any) -> ())?) -> any,
-
-	create: (self: Cache, id: any) -> (),
-	exists: (self: Cache, id: any) -> boolean,
-	release: (self: Cache, id: any) -> (),
-
-	destroy: (self: Cache) -> (),
+	destroy    : (self: Cache) -> (),
 }
 
 return Types

@@ -79,11 +79,7 @@ function Bootstrap.Configure(moduleRoots: { Instance })
 		injectPackages(clientModules:FindFirstChild("Packages"), inject)
 	else
 		local serverModules = game:GetService("ServerStorage"):WaitForChild("Modules")
-		--local common = {
-		--	serverModules,
-			
-		--}
-		--injectPackages(serverModules:FindFirstChild("Packages"), inject)
+		injectPackages(serverModules:FindFirstChild("Packages"), inject)
 	end
 
 	-- Dynamically generate our boot order
