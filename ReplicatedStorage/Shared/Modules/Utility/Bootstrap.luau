@@ -73,12 +73,17 @@ function Bootstrap.Configure(moduleRoots: { Instance })
 
 	local inject = {}
 	injectPackages(sharedModules:FindFirstChild("Packages"), inject)
+	injectPackages(sharedModules:FindFirstChild("Utility"), inject)
 
 	if RunService:IsClient() then
 		local clientModules = ReplicatedStorage:WaitForChild("Client").Modules
+		injectPackages(clientModules:FindFirstChild("Controllers"), inject)
+		injectPackages(clientModules:FindFirstChild("Utility"), inject)
 		injectPackages(clientModules:FindFirstChild("Packages"), inject)
 	else
 		local serverModules = game:GetService("ServerStorage"):WaitForChild("Modules")
+		injectPackages(serverModules:FindFirstChild("Managers"), inject)
+		injectPackages(serverModules:FindFirstChild("Utility"), inject)
 		injectPackages(serverModules:FindFirstChild("Packages"), inject)
 	end
 
