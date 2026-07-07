@@ -5,10 +5,11 @@ function CharacterController:Start(c)
 	local Context = c._runtime
 	local Network = Context.Network
 	local Packages = Context.Packages
-	local Input = warn(c:Local("Input"))
 	
-	Input:Post("Pressed", {
-		Key = "W",
+	local Plinko = Packages.Plinko
+	
+	Plinko.Define("Controllers", {
+			
 	})
 end
 
