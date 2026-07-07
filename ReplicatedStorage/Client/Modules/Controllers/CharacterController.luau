@@ -8,12 +8,12 @@ function CharacterController:Start(c)
 	
 	local Plinko = Packages.Plinko
 	
-	local Session = Plinko.define("Session", {
-		schema     = {
+	--local Session = Plinko.define("Session", {
+	--	schema     = {
 				
-		},      -- field -> default (required)
-		key        = "Session",                        -- "player" (default) | "global"
-	})
+	--	},      -- field -> default (required)
+	--	key        = "Session",                        -- "player" (default) | "global"
+	--})
 end
 
 return CharacterController

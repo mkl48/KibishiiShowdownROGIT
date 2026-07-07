@@ -19,9 +19,12 @@ local function findJunky()
 end
 
 -- Inject every top-level package under a folder by its own name.
-local function injectPackages(container, into)
+local function inject(container, into)
 	if not container then return end
 	for _, module in container:GetChildren() do
+		if module:IsA("Folder") then
+			into[module.Name] = re
+		end
 		if module:IsA("ModuleScript") then
 			into[module.Name] = require(module)
 		end
@@ -87,9 +90,8 @@ function Bootstrap.Configure(moduleRoots: { Instance })
 		injectPackages(serverModules:FindFirstChild("Packages"), inject)
 	end
 
-	-- Dynamically generate our boot order
 	local scannedClassPriority, scannedStandalonePriority = buildPriorities(moduleRoots)
-
+	warn(inject)
 	local app = Junky.Configure({
 		Junction = Config.Junction,
 		Manifest = Config.Manifests,
