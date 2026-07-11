@@ -1,9 +1,17 @@
+-- Kibishii Showdown
+-- Shared/Modules/Utility/Bootstrap.luau
+--
+-- The one place boot happens. It locates Junky, reads everything from Utility.Config,
+-- auto-injects the side's packages (so modules reach them via context:GetPackage),
+-- and calls Junky.Configure. The ServerBootstrap / ClientBootstrap entry scripts do
+-- nothing but hand it the folders to discover modules under.
+
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Bootstrap = {}
 
--- Find the Junky package wherever it lives.
+-- Find the Junky package wherever it lives (recommended layout first, then fallbacks).
 local function findJunky()
 	local shared = ReplicatedStorage:FindFirstChild("Shared")
 	local modules = shared and shared:FindFirstChild("Modules")
@@ -18,90 +26,64 @@ local function findJunky()
 	return require(ReplicatedStorage:WaitForChild("Junky"))
 end
 
--- Inject every top-level package under a folder by its own name.
-local function inject(container, into)
-	if not container then return end
-	for _, module in container:GetChildren() do
-		if module:IsA("Folder") then
-			into[module.Name] = re
-		end
-		if module:IsA("ModuleScript") then
-			into[module.Name] = require(module)
-		end
+-- Inject the direct-child ModuleScripts of `container` into the `into` map, keyed by
+-- name. Direct children only -- never descends into a package. Each require is isolated:
+-- a module that errors on load (e.g. a UI lib missing a child) is skipped with a warning
+-- instead of crashing the whole bootstrap. The running Bootstrap skips itself so folding
+-- in the Utility folder can't trigger a recursive require of this module.
+local function injectFrom(container, into)
+	if not container then
+		return
 	end
-end
-
--- Auto-scans module roots, requires them safely, and builds priority maps
--- in the format Junky's Priority.Order expects:
---   ClassPriority:      { [tier: number]: { string } }  for Controllers/Managers
---   StandalonePriority: { [name: string]: number }        for Services
-local function buildPriorities(moduleRoots)
-	local classMap = {}
-	local standaloneMap = {}
-
-	for _, root in ipairs(moduleRoots) do
-		for _, desc in ipairs(root:GetDescendants()) do
-			if desc:IsA("ModuleScript") then
-				-- Safely require to check for a Priority key
-				local success, result = pcall(require, desc)
-				if success and type(result) == "table" then
-					-- Wrap in pcall: some modules (e.g. Signal) have strict
-					-- metatables that error on unknown key access.
-					local ps, priority = pcall(function() return result.Priority end)
-					if ps and priority then
-						if desc.Name:match("Controller$") or desc.Name:match("Manager$") then
-							-- Tiered: group module names by their priority tier
-							if not classMap[priority] then
-								classMap[priority] = {}
-							end
-							table.insert(classMap[priority], desc.Name)
-						elseif desc.Name:match("Service$") then
-							-- Flat: map module name directly to its priority value
-							standaloneMap[desc.Name] = priority
-						end
-					end
-				end
+	for _, module in container:GetChildren() do
+		if module:IsA("ModuleScript") and module ~= script then
+			local ok, result = pcall(require, module)
+			if ok then
+				into[module.Name] = result
+			else
+				warn(("[Bootstrap] '%s' failed to load -- skipped: %s"):format(module.Name, tostring(result)))
 			end
 		end
 	end
-
-	return classMap, standaloneMap
 end
 
--- Configure this side.
+-- Configure this side. `moduleRoots` = the folders Junky discovers modules under.
+--
+-- Injection is split into two namespaces so things aren't all crammed under packages:
+--   Packages folders -> context:GetPackage(name)   (Plinko, Accede, Substance, ...)
+--   Utility  folders -> context:GetUtility(name)   (Config, MemoryManifest, ...)
+-- Controllers / Managers / Services are NOT injected -- Junky discovers those from
+-- `moduleRoots` and they're reached via GetService or the Network/Junction.
 function Bootstrap.Configure(moduleRoots: { Instance })
 	local Junky = findJunky()
 	local sharedModules = ReplicatedStorage:WaitForChild("Shared").Modules
 	local Config = require(sharedModules.Utility.Config)
 
-	local inject = {}
-	injectPackages(sharedModules:FindFirstChild("Packages"), inject)
-	injectPackages(sharedModules:FindFirstChild("Utility"), inject)
+	local packages, utilities = {}, {}
+	injectFrom(sharedModules:FindFirstChild("Packages"), packages)
+	injectFrom(sharedModules:FindFirstChild("Utility"), utilities)
 
 	if RunService:IsClient() then
 		local clientModules = ReplicatedStorage:WaitForChild("Client").Modules
-		injectPackages(clientModules:FindFirstChild("Controllers"), inject)
-		injectPackages(clientModules:FindFirstChild("Utility"), inject)
-		injectPackages(clientModules:FindFirstChild("Packages"), inject)
+		injectFrom(clientModules:FindFirstChild("Packages"), packages)
+		injectFrom(clientModules:FindFirstChild("Utility"), utilities)
 	else
 		local serverModules = game:GetService("ServerStorage"):WaitForChild("Modules")
-		injectPackages(serverModules:FindFirstChild("Managers"), inject)
-		injectPackages(serverModules:FindFirstChild("Utility"), inject)
-		injectPackages(serverModules:FindFirstChild("Packages"), inject)
+		injectFrom(serverModules:FindFirstChild("Packages"), packages)
+		injectFrom(serverModules:FindFirstChild("Utility"), utilities)
 	end
 
-	local scannedClassPriority, scannedStandalonePriority = buildPriorities(moduleRoots)
-	warn(inject)
 	local app = Junky.Configure({
 		Junction = Config.Junction,
-		Manifest = Config.Manifests,
-		ClassPriority = scannedClassPriority,
-		StandalonePriority = scannedStandalonePriority,
-		Inject = inject,
+		Manifest = Config.Manifest,
+		ClassPriority = Config.ClassPriority,
+		StandalonePriority = Config.StandalonePriority,
+		Inject = packages,
+		Utilities = utilities,
 		Modules = moduleRoots,
 	})
 
-	--print(("[Jinki Ketsu] booted (%s)"):format(if RunService:IsServer() then "Server" else "Client"))
+	print(("[Kibishii] booted (%s)"):format(if RunService:IsServer() then "Server" else "Client"))
 	return app
 end
 

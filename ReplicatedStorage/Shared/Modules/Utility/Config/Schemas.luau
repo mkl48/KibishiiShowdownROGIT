@@ -5,6 +5,7 @@ local Functions = require(script.Parent.Functions)
 local Inherit = Functions.Inherit
 local DeepCopy = Functions.DeepCopy
 local Bind = Functions.Bind
+local Extend = Functions.Extend
 
 Schemas._Common = {
 	Templates = {
@@ -51,12 +52,13 @@ Schemas._Structures = {
 			Controls = {
 				Attack = Bind("MouseButton1"),
 				Block = Bind("F"),
+				Special = Bind("R"),
+				
 				Dash = Bind("Q"),
-
 				Run = Bind("LeftControl"),
-				ShiftLock = Bind("LeftShift"),
 				Finality = Bind("G"),
-
+				
+				ShiftLock = Bind("LeftShift"),
 				Emote = Bind("B"),
 
 				Skill1 = Bind("One"),
@@ -127,12 +129,13 @@ Schemas._Structures = {
 			Controls = {
 				Attack = Bind("MouseButton1"),
 				Block = Bind("F"),
+				Special = Bind("R"),
+				
 				Dash = Bind("Q"),
-
-				Run = Bind("LeftControl"),
-				ShiftLock = Bind("LeftShift"),
 				Finality = Bind("G"),
-
+				Run = Bind("LeftControl"),
+				
+				ShiftLock = Bind("LeftShift"),
 				Emote = Bind("B"),
 
 				Skill1 = Bind("One"),
@@ -204,30 +207,59 @@ Schemas._Policies = {
 			end
 			return true
 		end
+	},
+
+	SessionPatch = {
+		Type = "table",
+		Default = {
+			Path = "",
+			Value = nil,
+		},
+		Validate = function(value)
+			if type(value.Path) ~= "string" or value.Path == "" then
+				return false, "SessionPatch requires a non-empty Path string"
+			end
+			return true
+		end
 	}
 }
-
-function Schemas._GetSchema(path): any
-	return Schemas.Resolve("Schemas" .. path)
-end
 
 function Schemas.GetPolicy(policyPath: string): any
 	return Schemas._Policies[policyPath]
 end
 
-
-function Schemas.Template(name: string): any
-	return DeepCopy(Schemas._GetSchema(name))
-end
-
 function Schemas.Resolve(path: string): any
-	local current: any = Schemas
+	local current: any = Schemas._Structures
 	for step in path:gmatch("[^%.]+") do
 		if type(current) ~= "table" then return nil end
 		current = current[step]
 	end
 
 	return DeepCopy(current) 
+end
+
+function Schemas.Instantiate(path: string): any
+	local structure = Schemas.Resolve(path)
+	if not structure then return nil end
+
+	local function resolveNode(node)
+		for key, value in pairs(node) do
+			if type(value) == "table" then
+				local isRule = value.Type ~= nil or value.Default ~= nil or value.Validate ~= nil
+				if isRule then
+					node[key] = DeepCopy(value.Default)
+				elseif value.Value ~= nil and next(value, "Value") == nil then
+					-- Bind wrapper: { Value = x } — unwrap to x
+					node[key] = value.Value
+				else
+					resolveNode(value)
+				end
+			end
+		end
+		return node
+	end
+
+	return resolveNode(structure)
 end
 
 function Schemas.WalkPath(path: string, onStep: (step: string) -> ())
@@ -249,6 +281,10 @@ function Schemas.Verify(policyPath: string, payload: any): (boolean, string?)
 			if type(ruleOrCategory) == "table" then
 				-- How we know if it's a rule vs a nested folder (like Settings.Audio)
 				local isRule = ruleOrCategory.Type ~= nil or ruleOrCategory.Default ~= nil or ruleOrCategory.Validate ~= nil
+				-- Also treat Bind wrappers ({ Value = x } with no other keys) as rules
+				if not isRule and type(ruleOrCategory) == "table" and ruleOrCategory.Value ~= nil and next(ruleOrCategory, "Value") == nil then
+					isRule = true
+				end
 
 				if not isRule then
 					-- It's a nested category. Ensure the payload has a table here, then recurse.
@@ -266,6 +302,9 @@ function Schemas.Verify(policyPath: string, payload: any): (boolean, string?)
 					if value == nil then
 						if ruleOrCategory.Default ~= nil then
 							targetData[key] = DeepCopy(ruleOrCategory.Default)
+							value = targetData[key]
+						elseif ruleOrCategory.Value ~= nil then
+							targetData[key] = DeepCopy(ruleOrCategory.Value)
 							value = targetData[key]
 						else
 							return false, fullPath .. " is required and missing"

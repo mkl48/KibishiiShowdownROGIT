@@ -10,9 +10,10 @@
 local CombatService = {}
 CombatService.Combo = {} -- [player] = { Index, LastSwing }
 
-function CombatService:Start(context)
-	warn(context)
-	--self._manifest = context:GetPackage("Manifest")
+function CombatService:Start(c)
+	local Context = c._runtime
+	local Config = Context.Utilities.Config
+	self._manifest = Config.Manifests.Game
 end
 
 local function getRoot(player: Player): BasePart?
@@ -23,7 +24,8 @@ end
 function CombatService:_combo(player: Player)
 	local c = self.Combo[player]
 	if not c then
-		c = { Index = 0, LastSwing = 0 }
+		local initial = self._manifest.Combat.InitialCombo
+		c = { Index = initial.Index, LastSwing = initial.LastSwing }
 		self.Combo[player] = c
 	end
 	return c
@@ -107,6 +109,11 @@ function CombatService:HitFor(player: Player, comboIndex: number, reverb: boolea
 		Knockback = knockback,
 		Reverb = reverb,
 	}
+end
+
+-- Reset the combo state for a specific player (used by battlegrounds-style character switch)
+function CombatService:ResetCombo(player: Player)
+	self.Combo[player] = nil
 end
 
 function CombatService:Stop()

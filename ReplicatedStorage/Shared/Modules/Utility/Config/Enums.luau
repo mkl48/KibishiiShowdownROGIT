@@ -21,7 +21,8 @@ Enums.Job = {
 		}),
 
 		Session = Extend(CommonJobs, {
-			
+			Sync = 4,
+			Update = 5,
 		})
 	},
 }

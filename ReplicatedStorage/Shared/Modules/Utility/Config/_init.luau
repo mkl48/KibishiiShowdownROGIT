@@ -6,6 +6,9 @@ local Manifests = require(script.Manifests)
 local Functions = require(script.Functions)
 local Schemas = require(script.Schemas)
 local Types = require(script.Types)
+local Settings = require(script.Settings)
+local ClassPriority = require(script.ClassPriority)
+local StandalonePriority = require(script.StandalonePriority)
 
 Config = Functions.Extend(Config, {
 	Junction = Junction,
@@ -14,6 +17,9 @@ Config = Functions.Extend(Config, {
 	Functions = Functions,
 	Schemas = Schemas,
 	Types = Types,
+	Settings = Settings,
+	ClassPriority = ClassPriority,
+	StandalonePriority = StandalonePriority,
 })
 
 return Config
